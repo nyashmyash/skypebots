@@ -33,7 +33,7 @@ skypedata =[["--"],
     ["--"]]
     
 
-def readvars():
+def readTokens():
     try:
         bot = []
         f = open(pathbot+"tokens.cfg",'r')
@@ -45,16 +45,15 @@ def readvars():
         f.close()
         return bot
     except Exception as e:
-        writelog("{0}".format(traceback.format_exc())) 
+        writeLog("{0}".format(traceback.format_exc())) 
         pass    
         
-def writelog(msg, type = ""):
+def writeLog(msg, type = ""):
     logger.info(type + "{0}".format(msg))
    
 viber = Api(BotConfiguration(
   name='testbotnew',
   avatar='http://viber.com/avatar.jpg',
-  #auth_token='46d4d869e6e7d0bf-427b852bca964b59-6df0847c332b71c7'
   auth_token=auth_token_viber
 ))
 
@@ -95,7 +94,7 @@ def processMsg(type_bot,indxbot)
                 TextMessage(None, None, messeges)
             ])
         except Exception as e:
-            writelog("{0}".format(traceback.format_exc()),type_bot) 
+            writeLog("{0}".format(traceback.format_exc()),type_bot) 
             pass
     elif indxbot != -1:
         bot[indxbot].send_message(service_,lines[1],messeges)
@@ -117,7 +116,7 @@ def getFiles(bot,type_bot, indxbot = -1):
                     processMsg(type_bot,indxbot) 
          
     except Exception as e:
-        writelog("{0}".format(traceback.format_exc()),type_bot) 
+        writeLog("{0}".format(traceback.format_exc()),type_bot) 
         
         pass
 
@@ -129,14 +128,14 @@ def functhr(bot):
         k = k + 1
     getfiles(bot,'viber')
 
-class ClockThread(threading.Thread):
+class SendFiles(threading.Thread):
     def __init__(self,interval):
         threading.Thread.__init__(self)
         self.interval = interval
     def run(self):
         while True:
             time.sleep(self.interval)
-            functhr(readvars())
+            functhr(readTokens())
  
 
 def restartbot():
@@ -157,5 +156,5 @@ t1.daemon = True
 t1.start()
 
 
-t = ClockThread(sleeptime)
+t = SendFiles(sleeptime)
 t.start() 
