@@ -21,7 +21,7 @@ def generate_token(client_id, client_secret):
 
 class SkypeBot:
     
-    def __init__(self, client_id,client_secret):             
+    def __init__(self, client_id="",client_secret="",tok=""):             
         #def token_func():
         #    global token
         #    payload = "grant_type=client_credentials&client_id="+client_id+"&client_secret="+client_secret+"&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default"
@@ -39,10 +39,12 @@ class SkypeBot:
         #self.t.daemon = True
         #self.t.start()
         #writelog("__init__ SkypeBot")
-        
-        self.token = generate_token(client_id, client_secret)
-        self.client_id = client_id
-        self.client_secret = client_secret
+        if tok != "":
+            self.token = tok
+        else:
+            self.token = generate_token(client_id, client_secret)
+        #self.client_id = client_id
+        #self.client_secret = client_secret
     def get_token(self):
         return self.token 
     
