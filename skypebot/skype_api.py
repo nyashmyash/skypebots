@@ -168,3 +168,9 @@ def create_animation(type,url,images,title,subtitle,text,buttons):
         }
     
     return card_animation
+
+def generate_token(client_id, client_secret):
+    payload = "grant_type=client_credentials&client_id="+client_id+"&client_secret="+client_secret+"&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default"
+    response = requests.post("https://login.microsoftonline.com/common/oauth2/v2.0/token?client_id="+client_id+"&client_secret="+client_secret+"&grant_type=client_credentials&scope=https%3A%2F%2Fgraph.microsoft.com%2F.default",data=payload,headers={"Content-Type":"application/x-www-form-urlencoded"})
+    data = response.json()
+    return data["access_token"]

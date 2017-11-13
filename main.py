@@ -46,15 +46,11 @@ formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)     
 def writelog(msg, type = ""):
-    #f = open("log.txt", mode="a")
-    #f.write("{0} {1} {2}\n".format(type,time.ctime(),msg))
-    #f.close()
     logger.info(type + "{0}".format(msg))
    
 viber = Api(BotConfiguration(
   name='testbotnew',
   avatar='http://viber.com/avatar.jpg',
-  #auth_token='46d4d869e6e7d0bf-427b852bca964b59-6df0847c332b71c7'
   auth_token=auth_token_viber
 ))
 
@@ -70,33 +66,23 @@ def getTime():
  
 def incomingViber(datadec):
     pathreceiveviber =  ftproot + "viber\\receive\\"   
-    #viber_request = viber.parse_request(request.get_data().decode("utf-8"))
     viber_request = viber.parse_request(datadec)
     #global mst
     if isinstance(viber_request, ViberMessageRequest):
         message = viber_request.message
         typer = message.to_dict().get("type")
         fullname = pathreceiveviber + getTime() + " " +str(viber_request.message_token) +".txt"
-        #writelog(str(timestamps),"viber")
-        #if (viber_request.message_token in mst):
-        #    return
-        #else:    
-        #    mst.append(viber_request.message_token)
-        #if (len(mst)>100):
-        #    mst = []
         if typer =="text":
             f = open(fullname, 'a')
             f.write(viber_request.sender.name+'\n'+viber_request.sender.id+'\n'+message.text+'\n') 
             f.close() 
         if typer =="file" or typer == "picture":
-            urlf = message.to_dict().get("media")
-            
+            urlf = message.to_dict().get("media")           
             if typer == "file":
                 namef =  getTime() +" " + message.to_dict().get("file_name")
             if typer == "picture":
                 namef = getTime() + " " + viber_request.sender.name  +".jpg"
             namef = namef.replace('я',"%FF").replace('Я',"%FF")
-            #writelog(pathreceiveviber+ namef,"viber")
             try:
                 response = requests.get(urlf, stream=True)
                 with open(pathreceiveviber+'files\\' + namef, 'wb') as out_file:
@@ -109,9 +95,8 @@ def incomingViber(datadec):
             except Exception as e:
                 writelog("{0}".format(traceback.format_exc()),"viber")
     return Response(status=200) 
-global timestamps_s
-timestamps_s = []    
-def readvars():
+    
+def readTokens():
     try:
         bot = []
         f = open(pathbot+"tokens.cfg",'r')
@@ -125,6 +110,7 @@ def readvars():
     except Exception as e:
         writelog("{0}".format(traceback.format_exc())) 
         pass 
+
 def getTimeLoc(time_):
     rets = ""
     time_ = time_.split('+')[0]
@@ -136,20 +122,46 @@ def getTimeLoc(time_):
     if len(rets)==15:
         rets = rets + '00'
     if len(rets)==16:
-        rets = rets + '0'
+        rets = rets + '0'    
+    return rets
+    
+def processMessSkype(data)
+    sender = data.get('conversation').get('id')
+    username = ''
+    if 'from' in data and 'name' in data.get('from'):
+        username = data.get('from').get('name')
+    time_s =  getTimeLoc(data.get("localTimestamp")) +" "+ data.get('id')
+    text = ''
+    
+    if 'text' in data:
+        text = data.get('text')
+        saveFileSkype(pathreceiveskype,sender,username, time_s, text,service)
+    if 'attachments' in data:
+        try:
+            attachm = data.get('attachments')[0]
+            curl = attachm.get('contentUrl')
+            response = requests.get(curl, headers={"Authorization": "Bearer "+bot[indxbot].get_token(),"Content-Type":"application/json"},stream=True)
+            filen =  getTimeLoc(data.get("localTimestamp")) +" "+ attachm.get('name').replace('я',"%FF").replace('Я',"%FF")
+            filename = pathreceiveskype +'files\\' + filen 
+            with open(filename, 'wb') as out_file:
+                shutil.copyfileobj(response.raw, out_file)
+            del response
+            saveFileSkype(pathreceiveskype,sender,username, time_s, "<file> "+filen,service)
+        except Exception as e:
+            writelog("{0}".format(traceback.format_exc()),"skype")
+            
+def saveFileSkype(path, sender,name, time, text,service):
+    try:
+        fullname = path + time +".txt"
+        f = open(fullname, 'w')
+        f.write(name+'\n'+sender+'\n'+text+'\n') 
+        f.close()
+    except Exception as e:
+        pass
         
-    return rets 
 def incomingSkype(data, indxbot):
-    bot = readvars()
+    bot = readTokens()
     pathreceiveskype = ""
-    global timestamps_s
-    #if (data.get('id') in timestamps_s):
-    #    return
-    #else:    
-    #    timestamps_s.append(data.get('id'))
-        #sendernames.append(viber_request.sender.name)
-    #if (len(timestamps_s)>100):
-    #    timestamps_s = []
     if indxbot>0:
         pathreceiveskype =  ftproot + "skype" + str(indxbot)+"\\receive\\"
     else:
@@ -163,78 +175,39 @@ def incomingSkype(data, indxbot):
 
             elif 'membersAdded' in data.keys():
                 new_member = data['recipient']['name']
-                
                 bot[indxbot].send_message(service,sender,"Привет, я бот")
             else:
                 pass
         elif data['type'] =='message':
-        
-            if 'isGroup' in data['conversation'].keys():
-                sender = data['conversation']['id']
-                if 'text' in data:
-                    text = data['text'] 
-                process_messages_skype(pathreceiveskype,sender,'group','time',text,service)
-                
-            else:
-                sender = data.get('conversation').get('id')
-                username = ''
-                if 'from' in data and 'name' in data.get('from'):
-                    username = data.get('from').get('name')
-                time_s =  getTimeLoc(data.get("localTimestamp")) +" "+ data.get('id')
-                text = ''
-            
-                if 'text' in data:
-                    text = data.get('text')
-                    process_messages_skype(pathreceiveskype,sender,username, time_s, text,service)
-                if 'attachments' in data:
-                    try:
-                        attachm = data.get('attachments')[0]
-                        curl = attachm.get('contentUrl')
-                        response = requests.get(curl, headers={"Authorization": "Bearer "+bot[indxbot].get_token(),"Content-Type":"application/json"},stream=True)
-                        filen =  getTimeLoc(data.get("localTimestamp")) +" "+ attachm.get('name').replace('я',"%FF").replace('Я',"%FF")
-                        filename = pathreceiveskype +'files\\' + filen 
-                        #writelog(filename,"skype")
-                        with open(filename, 'wb') as out_file:
-                            shutil.copyfileobj(response.raw, out_file)
-                        del response
-                        process_messages_skype(pathreceiveskype,sender,username, time_s, "<file> "+filen,service)
-                    except Exception as e:
-                        writelog("{0}".format(traceback.format_exc()),"skype")
+            processMessSkype(data)    
         elif data['type'] == 'contactRelationUpdate':
-        #bot added for private chat
-        
             if data['action']=='add':
-            
                 sender = data['conversation']['id']
-                bot[indxbot].send_message(service,sender,"Hi, I am a bot.")
+                bot[indxbot].send_message(service,sender,"Привет, я бот")
                 pass
             elif data['action']=='remove':
                 pass
             else:
-                pass
-                
+                pass               
         else:
             pass                
     except Exception as e:
         writelog("{0}".format(traceback.format_exc()), "skype")                
       
 @app.route('/files/<type>/<file>', methods=['GET'])
-def retfile(type, file):
+def retFile(type, file):
     try:
         file = file.replace("__"," ")
-         
-        #file = base64.b64decode(file).decode('cp1251')
         if type == 'viber' or type.find('skype')>-1:
             files_pic = os.listdir(path=ftproot + type +"\\send\\files\\.")
             if (file in files_pic):
-                return send_from_directory(ftproot + type +"\\send\\files\\", file )
-        
+                return send_from_directory(ftproot + type +"\\send\\files\\", file )       
     except Exception as e:
         writelog("{0}".format(traceback.format_exc()),type)        
         
   
 @app.route('/', methods=['POST','GET'])
-def webhook_origin():
+def webhookOrigin():
     
     if request.method == 'GET':
         return "bot Запчасть Магнит ООО"
@@ -248,9 +221,7 @@ def webhook_origin():
                     return incomingSkype(data,0)
                 else:
                     writelog(reqde,"viber")
-                    return incomingViber(reqde)
-            #else:
-                #writelog("ping")        
+                    return incomingViber(reqde)    
         except Exception as e:
             writelog("{0}".format(traceback.format_exc()))  
 
@@ -258,32 +229,18 @@ def webhook_origin():
 @app.route('/<type>', methods=['POST','GET'])
 def webhook(type):
     if type.find("skype")>-1:
-        
-        #writelog(request.method,type)
         if request.method == 'GET':
             return "bot "+type+ " Запчасть Магнит ООО"
         if request.method == 'POST':
             try:
                 rdata = request.data.decode('utf-8')
                 if (len(rdata)>10):
-                    
                     data = json.loads(rdata)
                     writelog(rdata,type)
                     return incomingSkype(data,int(type[-1]))
-                #else:
-                #    writelog("ping")
             except Exception as e:
                 writelog("{0}".format(traceback.format_exc()))  
-
     return 'Ok'
 
-def process_messages_skype(path, sender,name, time, text,service):
-    try:
-        fullname = path + time +".txt"
-        f = open(fullname, 'w')
-        f.write(name+'\n'+sender+'\n'+text+'\n') 
-        f.close()
-    except Exception as e:
-        pass
 if __name__ == '__main__': 
     app.run()
